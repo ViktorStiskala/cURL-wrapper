@@ -616,6 +616,7 @@ class Curl extends Nette\Object
 	 * Sets download folder for request
 	 *
 	 * @param string $downloadFolder
+	 * @throws CurlException
 	 * @return Curl
 	 */
 	public function setDownloadFolder($downloadFolder)
@@ -670,6 +671,7 @@ class Curl extends Nette\Object
 	 *
 	 * @param string $certificate
 	 * @param int $verifyhost
+	 * @throws CurlException
 	 * @return Curl
 	 */
 	public function setTrustedCertificate($certificate, $verifyhost=2)
@@ -703,6 +705,7 @@ class Curl extends Nette\Object
 	 *
 	 * @param string $directory
 	 * @param string $verifyhost
+	 * @throws CurlException
 	 * @return Curl
 	 */
 	public function setTrustedCertificatesDirectory($directory, $verifyhost=2)
@@ -858,6 +861,7 @@ class Curl extends Nette\Object
 	 * @param string [optional] $url
 	 * @param string $fileName
 	 * @param array $vars
+	 * @throws CurlException
 	 * @return CurlResponse
 	 */
 	public function download($url = Null, $fileName = Null, $vars = array())
@@ -907,6 +911,7 @@ class Curl extends Nette\Object
 	 * @param string $username
 	 * @param string $password
 	 * @param int $timeout
+	 * @throws CurlException
 	 * @return bool
 	 */
 // 	public function ftpUpload($file, $url, $username = Null, $password = Null, $timeout = 300)
@@ -948,6 +953,7 @@ class Curl extends Nette\Object
 	 * @param string $url
 	 * @param array $vars
 	 * @param int $cycles
+	 * @throws CurlException
 	 * @return CurlResponse
 	 */
 	public function request($method, $url, $vars = array(), $cycles = 1)
