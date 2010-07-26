@@ -8,9 +8,10 @@
  */
 
 require_once dirname(__FILE__) . '/Nette/loader.php';
-require_once dirname(__FILE__) . '/cURL-wrapper/Curl.php';
+require_once dirname(__FILE__) . '/Curl/Curl.php';
 
-use cURL\Curl;
+use Curl\Curl,
+	Curl\CurlException;
 
 // register wrapper safe for file manipulation
 // SafeStream::register();
@@ -46,15 +47,93 @@ if( true ){ // test 1: get
 	dump($response->getHeaders());
 
 	echo "<h2>Response:</h2>", "<pre>";
-	var_dump($response->getResponse());
+	var_dump(htmlspecialchars($response->getResponse()));
 	echo "</pre>";
 }
 
 
-if( true ){ // test 2: post
+
+if( true ){ // test 2: get non existing file
+	$test = new Curl("http://curl.kdyby.org/prevodnik.asm.zdrojak.nonexisting");
+
+
+	echo "<hr>test 2: get 404 ... init ok<hr>", "<h2>Setup:</h2>";
+
+	proxy($test); // for debbuging at school
+	dump($test);
+
+
+	try {
+	    $response =  $test->get();
+
+	    echo "<h2>Headers:</h2>";
+	    dump($response->getHeaders());
+
+	    echo "<h2>Response:</h2>", "<pre>";
+	    var_dump($response->getResponse());
+	    echo "</pre>";
+
+	} catch( CurlException $e ){
+		echo "<h1>",get_class($e),"</h1>";
+
+		if( $response = $e->getResponse() ){
+			echo "<h2>Headers:</h2>";
+			dump($response->getHeaders());
+
+			echo "<h2>Response:</h2>", "<pre>";
+			var_dump(htmlspecialchars($response->getResponse()));
+			echo "</pre>";
+
+		} else {
+			dump("shit happens!", $e->getMessage());
+		}
+	}
+}
+
+
+
+if( true ){ // test 3: get secured file
+	$test = new Curl("http://curl.kdyby.org/secured.php");
+
+
+	echo "<hr>test 3: get secured ... init ok<hr>", "<h2>Setup:</h2>";
+
+	proxy($test); // for debbuging at school
+	dump($test);
+
+
+	try {
+	    $response =  $test->get();
+
+	    echo "<h2>Headers:</h2>";
+	    dump($response->getHeaders());
+
+	    echo "<h2>Response:</h2>", "<pre>";
+	    var_dump($response->getResponse());
+	    echo "</pre>";
+
+	} catch( CurlException $e ){
+		echo "<h1>",get_class($e),"</h1>";
+
+		if( $response = $e->getResponse() ){
+			echo "<h2>Headers:</h2>";
+			dump($response->getHeaders());
+
+			echo "<h2>Response:</h2>", "<pre>";
+			var_dump(htmlspecialchars($response->getResponse()));
+			echo "</pre>";
+
+		} else {
+			dump("shit happens!", $e->getMessage());
+		}
+	}
+}
+
+
+if( true ){ // test 4: post
 	$test = new Curl("http://curl.kdyby.org/dump_post.php");
 
-	echo "<hr>test 2: post ... init ok<hr>", "<h2>Setup:</h2>";
+	echo "<hr>test 4: post ... init ok<hr>", "<h2>Setup:</h2>";
 
 	proxy($test); // for debbuging at school
 	dump($test);
@@ -72,16 +151,16 @@ if( true ){ // test 2: post
 	dump($response->getHeaders());
 
 	echo "<h2>Response:</h2>", "<pre>";
-	var_dump($response->getResponse());
+	var_dump(htmlspecialchars($response->getResponse()));
 	echo "</pre>";
 }
 
 
 
-if( true ){ // test 3: download
+if( true ){ // test 5: download
 	$test = new Curl("http://curl.kdyby.org/prevodnik.asm.zdrojak");
 
-	echo "<hr>test 3: download ... init ok<hr>", "<h2>Setup:</h2>";
+	echo "<hr>test 5: download ... init ok<hr>", "<h2>Setup:</h2>";
 
 	proxy($test); // for debbuging at school
 	dump($test);
@@ -97,7 +176,7 @@ if( true ){ // test 3: download
 
 	echo "<h2>Response:</h2>", "<pre>";
 	$fp = $response->openFile();
-	var_dump(fread($fp, $response->getHeader('Content-Length')));
+	var_dump(htmlspecialchars(fread($fp, $response->getHeader('Content-Length'))));
 	fclose($fp);
 	echo "</pre>";
 }

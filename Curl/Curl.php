@@ -205,6 +205,51 @@ class Curl extends Nette\Object
 	static $maxCycles = 15;
 
 
+	/**
+	 * List of status codes which should generate exception
+	 *
+	 * @var array
+	 */
+	static $badStatusCodes = array(
+		400, // Bad Request
+		401, // Unauthorized
+		403, // Forbidden
+		404, // Not Found
+		405, // Method Not Allowed
+		406, // Not Acceptable ; TODO: workaround!
+		407, // Proxy Authentication Required
+		408, // Request Timeout
+		409, // Conflict
+		410, // Gone
+		411, // Length Required
+		412, // Precondition Failed
+		413, // Request Entity Too Large
+		414, // Request-URI Too Long
+		415, // Unsupported Media Type
+		416, // Requested Range Not Satisfiable
+		417, // Expectation Failed
+		418, // I'm a teapot (joke)
+		422, // Unprocessable Entity (WebDAV) (RFC 4918)
+		423, // Locked (WebDAV) (RFC 4918)
+		424, // Failed Dependency (WebDAV) (RFC 4918)
+		425, // Unordered Collection (RFC 3648)
+		426, // Upgrade Required (RFC 2817)
+		449, // Retry With
+		450, // Blocked by Windows Parental Controls
+
+		500, // Internal Server Error
+		501, // Not Implemented
+		502, // Bad Gateway
+		503, // Service Unavailable
+		504, // Gateway Timeout
+		505, // HTTP Version Not Supported
+		506, // Variant Also Negotiates (RFC 2295)
+		507, // Insufficient Storage (WebDAV) (RFC 4918)[4]
+		509, // Bandwidth Limit Exceeded (Apache bw/limited extension)
+		510 // Not Extended (RFC 2774)
+	    );
+
+
 
 	/**
 	 * Initializes a Curl object
@@ -1010,6 +1055,21 @@ class Curl extends Nette\Object
 		if( $response ){
 			$response = new CurlResponse($response, $this);
 
+		} else {
+			if ($this->info['http_code'] == 400) {
+				throw new CurlException('Bad request');
+
+			} elseif ($this->info['http_code'] == 401) {
+				throw new CurlException('Permission Denied');
+
+			} else {
+				throw new CurlException($this->error);
+			}
+
+		}
+
+		if( !in_array($response->getHeader('Status-Code'), self::$badStatusCodes) ){
+
 			$response_headers = $response->getHeaders();
 
                         if( isset($response_headers['Location']) AND $this->getFollowRedirects() ) {
@@ -1040,15 +1100,7 @@ class Curl extends Nette\Object
                         }
 
 		} else {
-			if ($this->info['http_code'] == 400) {
-				throw new CurlException('Bad request - ' . $response);
-
-			} elseif ($this->info['http_code'] == 401) {
-				throw new CurlException('Permission Denied - ' . $response);
-
-			} else {
-				throw new CurlException($this->error);
-			}
+			throw new CurlException($response->getHeader('Status'), Null, $response);
 		}
 
 		return $response;
@@ -1181,5 +1233,25 @@ class Curl extends Nette\Object
  * @author Filip Procházka <hosiplan@kdyby.org>
  */
 
-class CurlException extends \Exception { }
+class CurlException extends \Exception
+{
+	var $response;
+
+
+
+	public function __construct($message, $code, $response)
+	{
+		parent::__construct($message, $code);
+
+		$this->response = $response;
+	}
+
+
+
+	public function getResponse()
+	{
+		return $this->response;
+	}
+
+}
 
