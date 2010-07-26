@@ -1,22 +1,25 @@
 <?php
 
 
+namespace Curl;
+use Nette;
+
+
 // we'll need this
 require_once dirname(__FILE__) . "/CurlResponse.php";
 
 
 
 /**
- * An advanced cURL wrapper
+ * An advanced Curl wrapper
  *
  * See the README for documentation/examples or http://php.net/curl for more information about the libcurl extension for PHP
  *
- * @package curl
+ * @package Curl
  * @author Sean Huber <shuber@huberry.com>
  * @author Filip Procházka <hosiplan@kdyby.org>
  */
-
-final class Curl
+class Curl extends Nette\Object
 {
 	/**#@+ Available types of requests */
 	const GET = 'GET';
@@ -195,6 +198,15 @@ final class Curl
 
 
 	/**
+	 * Maximum number of request cycles after follow location
+	 *
+	 * @var int
+	 */
+	static $maxCycles = 15;
+
+
+
+	/**
 	 * Initializes a Curl object
 	 *
 	 * <strike>Sets the $cookieFile to "curl_cookie.txt" in the current directory</strike>
@@ -211,36 +223,34 @@ final class Curl
 		// $this->cookieFile(dirname(__FILE__).DIRECTORY_SEPARATOR.'curl_cookie.txt');
 		$this->setUserAgent(isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : 'Curl/PHP '.PHP_VERSION.' (http://curl.kdyby.org/)');
 
-		if( class_exists('Environment') ){
-			$config = Environment::getConfig('curl');
+		$config = Nette\Environment::getConfig('curl');
 
-			foreach( (array)$config AS $option => $value ){
-				if( $option == 'cookieFile' ){
-					$this->setCookieFile($value);
+		foreach( (array)$config AS $option => $value ){
+			if( $option == 'cookieFile' ){
+				$this->setCookieFile($value);
 
-				} elseif( $option == 'downloadFolder' ){
-					$this->setDownloadFolder($value);
+			} elseif( $option == 'downloadFolder' ){
+				$this->setDownloadFolder($value);
 
-				} elseif( $option == 'referer' ){
-					$this->setReferer($value);
+			} elseif( $option == 'referer' ){
+				$this->setReferer($value);
 
-				} elseif( $option == 'userAgent' ){
-					$this->setUserAgent($value);
+			} elseif( $option == 'userAgent' ){
+				$this->setUserAgent($value);
 
-				} elseif( $option == 'followRedirects' ){
-					$this->setFollowRedirects($value);
+			} elseif( $option == 'followRedirects' ){
+				$this->setFollowRedirects($value);
 
-				} elseif( $option == 'returnTransfer' ){
-					$this->setReturnTransfer($value);
+			} elseif( $option == 'returnTransfer' ){
+				$this->setReturnTransfer($value);
 
-				} elseif( is_array($this->{$option}) ){
-					foreach( (array)$value AS $key => $set ){
-						$this->{$option}[$key] = $set;
-					}
-
-				} else {
-					$this->{$option} = $value;
+			} elseif( is_array($this->{$option}) ){
+				foreach( (array)$value AS $key => $set ){
+					$this->{$option}[$key] = $set;
 				}
+
+			} else {
+				$this->{$option} = $value;
 			}
 		}
 	}
@@ -250,10 +260,11 @@ final class Curl
 	 * Sets option for request
 	 *
 	 * @param string $ip
-	 * @param string $port
+	 * @param int $port
 	 * @param string $username
 	 * @param string $password
-	 * @return Curl  provides a fluent interface
+	 * @param int $timeout
+	 * @return Curl
 	 */
 	public function addProxy($ip, $port = 3128, $username = Null, $password = Null, $timeout = 15)
 	{
@@ -271,6 +282,8 @@ final class Curl
 
 	/**
 	 * Returns list of avalaible proxies
+	 *
+	 * @return string
 	 */
 	public function getProxies()
 	{
@@ -283,7 +296,7 @@ final class Curl
 	 *
 	 * @param string $option
 	 * @param string $value
-	 * @return Curl  provides a fluent interface
+	 * @return Curl
 	 */
 	public function setOption($option, $value)
 	{
@@ -297,7 +310,7 @@ final class Curl
 	 * Returns specific option value
 	 *
 	 * @param string $option
-	 * @return option value
+	 * @return string
 	 */
 	public function getOption($option)
 	{
@@ -309,7 +322,7 @@ final class Curl
 	 * Sets options for request
 	 *
 	 * @param array $options
-	 * @return Curl  provides a fluent interface
+	 * @return Curl
 	 */
 	public function setOptions(array $options)
 	{
@@ -323,6 +336,8 @@ final class Curl
 
 	/**
 	 * Returns all options
+	 *
+	 * @return string
 	 */
 	public function getOptions()
 	{
@@ -332,6 +347,8 @@ final class Curl
 
 	/**
 	 * Returns vars
+	 *
+	 * @return string
 	 */
 	public function getVars()
 	{
@@ -344,7 +361,7 @@ final class Curl
 	 *
 	 * @param string $header
 	 * @param string $value
-	 * @return Curl  provides a fluent interface
+	 * @return Curl
 	 */
 	public function setHeader($header, $value)
 	{
@@ -360,7 +377,7 @@ final class Curl
 	 * Returns specific header value
 	 *
 	 * @param string $header
-	 * @return header value
+	 * @return string
 	 */
 	public function getHeader($header)
 	{
@@ -372,7 +389,7 @@ final class Curl
 	 * Sets array of headers for request
 	 *
 	 * @param array $headers
-	 * @return Curl  provides a fluent interface
+	 * @return Curl
 	 */
 	public function setHeaders(array $headers)
 	{
@@ -386,6 +403,7 @@ final class Curl
 
 	/**
 	 * Returns all headers
+	 *
 	 * @return array
 	 */
 	public function getHeaders()
@@ -395,10 +413,10 @@ final class Curl
 
 
 	/**
-	 * Sets $referer for request
+	 * Sets referer for request
 	 *
 	 * @param string $url
-	 * @return Curl  provides a fluent interface
+	 * @return Curl
 	 */
 	public function setReferer($url = Null)
 	{
@@ -410,6 +428,8 @@ final class Curl
 
 	/**
 	 * Returns referer
+	 *
+	 * @return string
 	 */
 	public function getReferer()
 	{
@@ -418,10 +438,10 @@ final class Curl
 
 
 	/**
-	 * Sets $userAgent for request
+	 * Sets user agent for request
 	 *
 	 * @param string $userAgent
-	 * @return Curl  provides a fluent interface
+	 * @return Curl
 	 */
 	public function setUserAgent($userAgent = Null)
 	{
@@ -433,7 +453,9 @@ final class Curl
 
 
 	/**
-	 * Returns userAgent
+	 * Returns user agent
+	 *
+	 * @return string
 	 */
 	public function getUserAgent()
 	{
@@ -442,10 +464,10 @@ final class Curl
 
 
 	/**
-	 * Sets $followRedirects for request
+	 * Sets whether follow redirects or not from request
 	 *
-	 * @param string $follow
-	 * @return Curl  provides a fluent interface
+	 * @param bool $follow
+	 * @return Curl
 	 */
 	public function setFollowRedirects($follow = True)
 	{
@@ -455,11 +477,10 @@ final class Curl
 	}
 
 
-
 	/**
-	 * Returns $followRedirects for request
+	 * Returns whether follow redirects or not from request
 	 *
-	 * @return followRedirects
+	 * @return bool
 	 */
 	public function getFollowRedirects()
 	{
@@ -468,10 +489,10 @@ final class Curl
 
 
 	/**
-	 * Sets $returnTransfer for request
+	 * Sets whether return result page or not
 	 *
-	 * @param string $return
-	 * @return Curl  provides a fluent interface
+	 * @param bool $return
+	 * @return Curl
 	 */
 	public function setReturnTransfer($return = True)
 	{
@@ -482,7 +503,9 @@ final class Curl
 
 
 	/**
-	 * Returns returnTransfer
+	 * Returns whether return result page or not
+	 *
+	 * @return bool
 	 */
 	public function getReturnTransfer()
 	{
@@ -491,10 +514,10 @@ final class Curl
 
 
 	/**
-	 * Sets $url for request
+	 * Sets URL for request
 	 *
 	 * @param string $url
-	 * @return Curl  provides a fluent interface
+	 * @return Curl
 	 */
 	public function setUrl($url = Null)
 	{
@@ -504,11 +527,10 @@ final class Curl
 	}
 
 
-
 	/**
-	 * Returns $url for request
+	 * Returns requested URL
 	 *
-	 * @return Curl  provides a fluent interface
+	 * @return string
 	 */
 	public function getUrl()
 	{
@@ -519,7 +541,7 @@ final class Curl
 	/**
 	 * Returns used http method
 	 *
-	 * @return method
+	 * @return string
 	 */
 	public function getMethod()
 	{
@@ -530,7 +552,7 @@ final class Curl
 	/**
 	 * Returns path for last downloaded file
 	 *
-	 * @return path
+	 * @return string
 	 */
 	public function getDownloadPath()
 	{
@@ -539,9 +561,9 @@ final class Curl
 
 
 	/**
-	 * Returns used fileProtocol
+	 * Returns used file protocol
 	 *
-	 * @return fileProtocol
+	 * @return string
 	 */
 	public function getFileProtocol()
 	{
@@ -550,10 +572,11 @@ final class Curl
 
 
 	/**
-	 * Sets $cookieFile for request
+	 * Sets cookie file for request
 	 *
 	 * @param string $cookieFile
-	 * @return Curl  provides a fluent interface
+	 * @throws CurlException
+	 * @return Curl
 	 */
 	public function setCookieFile($cookieFile)
 	{
@@ -568,6 +591,8 @@ final class Curl
 			fwrite($fp,"");
 			fclose($fp);
 
+			$this->cookieFile = $cookieFile;
+
 		} else {
 			throw new CurlException("You have to create '" . $cookieFile . "' and make it writable!");
 		}
@@ -578,6 +603,8 @@ final class Curl
 
 	/**
 	 * Returns cookieFile
+	 *
+	 * @return string
 	 */
 	public function getCookieFile()
 	{
@@ -586,17 +613,21 @@ final class Curl
 
 
 	/**
-	 * Sets $downloadFolder for request
+	 * Sets download folder for request
 	 *
 	 * @param string $downloadFolder
-	 * @return Curl  provides a fluent interface
+	 * @return Curl
 	 */
 	public function setDownloadFolder($downloadFolder)
 	{
-		if( is_dir($downloadFolder) AND is_writable($downloadFolder) ){
+		if( is_string($downloadFolder) AND $downloadFolder === "" ){
+			throw new CurlException("Invalid Argument \$downloadFolder");
+		    
+		} elseif( is_dir($downloadFolder) AND is_writable($downloadFolder) ){
 			$this->downloadFolder = $downloadFolder;
+
 		} else {
-			throw new CurlException("You have to create " . $downloadFolder . " and make it writable!");
+			throw new CurlException("You have to create download folder '".$downloadFolder."' and make it writable!");
 		}
 
 		return $this;
@@ -605,6 +636,8 @@ final class Curl
 
 	/**
 	 * Returns downloadFolder
+	 *
+	 * @return string
 	 */
 	public function getDownloadFolder()
 	{
@@ -615,10 +648,10 @@ final class Curl
 	/**
 	 * Sets if all certificates are trusted in default
 	 *
-	 * @param boolean $verify
-	 * @return Curl  provides a fluent interface
+	 * @param bool $verify
+	 * @return Curl
 	 */
-	public function setCertificationVerify($verify)
+	public function setCertificationVerify($verify = True)
 	{
 		$this->setOption('SSL_VERIFYPEER', ($verify ? True : False));
 
@@ -628,7 +661,7 @@ final class Curl
 
 	/**
 	 * Adds path to trusted certificate and unsets directory with certificates if set
-	 * WARNING: Overwrites the last one
+	 * WARNING: Overwrites the last given vertificate
 	 *
 	 * CURLOPT_SSL_VERIFYHOST:
 	 *	0: Don’t check the common name (CN) attribute
@@ -636,7 +669,8 @@ final class Curl
 	 *	2: Check that the common name exists and that it matches the host name of the server
 	 *
 	 * @param string $certificate
-	 * @return Curl  provides a fluent interface
+	 * @param int $verifyhost
+	 * @return Curl
 	 */
 	public function setTrustedCertificate($certificate, $verifyhost=2)
 	{
@@ -659,15 +693,6 @@ final class Curl
 
 
 	/**
-	 * @return trusted certificate
-	 */
-	public function getTrustedCertificate()
-	{
-		return $this->getOption('CAINFO');
-	}
-
-
-	/**
 	 * Adds path to directory which contains trusted certificate and unsets single certificate if set
 	 * WARNING: Overwrites the last one
 	 *
@@ -676,8 +701,9 @@ final class Curl
 	 *	1: Check that the common name attribute at least exists
 	 *	2: Check that the common name exists and that it matches the host name of the server
 	 *
-	 * @param string $certificate
-	 * @return Curl  provides a fluent interface
+	 * @param string $directory
+	 * @param string $verifyhost
+	 * @return Curl
 	 */
 	public function setTrustedCertificatesDirectory($directory, $verifyhost=2)
 	{
@@ -694,13 +720,17 @@ final class Curl
 		} else {
 			throw new CurlException("Directory ".$directory." is not readable!");
 		}
+
+		return $this;
 	}
 
 
 	/**
-	 * @return trusted certificates directory
+	 * Returns path to trusted certificate or certificates directory
+	 *
+	 * @return string
 	 */
-	public function getTrustedCertificatesDirectory()
+	public function getTrustedCertificate()
 	{
 		return $this->getOption('CAPATH');
 	}
@@ -708,6 +738,8 @@ final class Curl
 
 	/**
 	 * Returns the error string of the current request if one occurred
+	 *
+	 * @return string
 	 */
 	public function getError()
 	{
@@ -720,9 +752,9 @@ final class Curl
 	 *
 	 * Returns a CurlResponse object if the request was successful, false otherwise
 	 *
-	 * @param string $url
-	 * @param array|string $vars
-	 * @return CurlResponse object
+	 * @param string    [optional] $url
+	 * @param array $vars
+	 * @return CurlResponse
 	 */
 	public function delete($url = Null, $vars = array())
 	{
@@ -740,8 +772,8 @@ final class Curl
 	 *
 	 * Returns a CurlResponse object if the request was successful, false otherwise
 	 *
-	 * @param string $url
-	 * @param array|string $vars
+	 * @param string    [optional] $url
+	 * @param array $vars
 	 * @return CurlResponse
 	 */
 	public function get($url = Null, $vars = array())
@@ -765,8 +797,8 @@ final class Curl
 	 *
 	 * Returns a CurlResponse object if the request was successful, false otherwise
 	 *
-	 * @param string $url
-	 * @param array|string $vars
+	 * @param string    [optional] $url
+	 * @param array $vars
 	 * @return CurlResponse
 	 */
 	public function head($url = Null, $vars = array())
@@ -783,9 +815,9 @@ final class Curl
 	/**
 	 * Makes a HTTP POST request to the specified $url with an optional array or string of $vars
 	 *
-	 * @param string $url
-	 * @param array|string $vars
-	 * @return CurlResponse|boolean
+	 * @param string    [optional] $url
+	 * @param array $vars
+	 * @return CurlResponse
 	 */
 	public function post($url = Null, $vars = array())
 	{
@@ -803,9 +835,9 @@ final class Curl
 	 *
 	 * Returns a CurlResponse object if the request was successful, false otherwise
 	 *
-	 * @param string $url
-	 * @param array|string $vars
-	 * @return CurlResponse|boolean
+	 * @param string    [optional] $url
+	 * @param array $vars
+	 * @return CurlResponse
 	 */
 	public function put($url = Null, $vars = array())
 	{
@@ -823,10 +855,10 @@ final class Curl
 	 *
 	 * Returns a boolean value whatever a download was succesful and file was downloaded to $this->downloadFolder.$fileName
 	 *
-	 * @param string $url
+	 * @param string [optional] $url
 	 * @param string $fileName
-	 * @param array|string $vars
-	 * @return boolean
+	 * @param array $vars
+	 * @return CurlResponse
 	 */
 	public function download($url = Null, $fileName = Null, $vars = array())
 	{
@@ -868,14 +900,14 @@ final class Curl
 	/* *
 	 * Uploads file
 	 *
-	 * Returns a boolean value whatever an upload was succesful
+	 * Returns a bool value whether an upload was succesful
 	 *
 	 * @param string $file
 	 * @param string $url
 	 * @param string $username
 	 * @param string $password
-	 * @param integer $timeout
-	 * @return boolean
+	 * @param int $timeout
+	 * @return bool
 	 */
 // 	public function ftpUpload($file, $url, $username = Null, $password = Null, $timeout = 300)
 // 	{
@@ -914,11 +946,16 @@ final class Curl
 	 *
 	 * @param string $method
 	 * @param string $url
-	 * @param array|string $vars
-	 * @return CurlResponse|boolean
+	 * @param array $vars
+	 * @param int $cycles
+	 * @return CurlResponse
 	 */
-	public function request($method, $url, $vars = array())
+	public function request($method, $url, $vars = array(), $cycles = 1)
 	{
+                if($cycles > self::$maxCycles){
+                        throw new CurlException("Redirect loop");
+		}
+
 		$this->error = Null;
 		$used_proxies = 0;
 
@@ -947,8 +984,9 @@ final class Curl
 				}
 
 				$used_proxies++;
+
 			} else {
-				unset($this->option['PROXY'], $this->option['PROXYPORT'], $this->option['PROXYTYPE'], $this->option['PROXYUSERPWD']);
+				unset($this->options['PROXY'], $this->options['PROXYPORT'], $this->options['PROXYTYPE'], $this->options['PROXYUSERPWD']);
 			} //debug::dump($this->options);
 
 			$this->set_request_method($method);
@@ -967,14 +1005,41 @@ final class Curl
 			$response = new CurlResponse($response, $this);
 
 			$response_headers = $response->getHeaders();
-			if( isset($response_headers['Location']) AND $this->getFollowRedirects() ){
-				$response = $this->request($this->getMethod(), $response_headers['Location']);
-			}
+
+                        if( isset($response_headers['Location']) AND $this->getFollowRedirects() ) {
+				$url = new Nette\Web\Uri($response_headers['Location']);
+				$lastUrl = new Nette\Web\Uri($this->info['url']);
+
+				if( empty($url->scheme) ){ // scheme
+					if( empty($lastUrl->scheme) ){
+						throw new CurlException("Missign URL scheme!");
+					}
+
+					$url->scheme = $lastUrl->scheme;
+				}
+
+				if( empty($url->host) ){ // host
+					if( empty($lastUrl->host) ){
+						throw new CurlException("Missign URL host!");
+					}
+
+					$url->host = $lastUrl->host;
+				}
+
+				if( empty($url->path) ){ // path
+					$url->path = $lastUrl->path;
+				}
+
+                                $response = $this->request($this->getMethod(), (string)$url, array(), ++$cycles);
+                        }
+
 		} else {
 			if ($this->info['http_code'] == 400) {
 				throw new CurlException('Bad request - ' . $response);
+
 			} elseif ($this->info['http_code'] == 401) {
 				throw new CurlException('Permission Denied - ' . $response);
+
 			} else {
 				throw new CurlException($this->error);
 			}
@@ -993,6 +1058,7 @@ final class Curl
 	{
 		if( gettype($this->request) == 'resource' AND get_resource_type($this->request) == 'curl' ){
 			curl_close($this->request);
+
 		} else {
 			$this->request = Null;
 		}
@@ -1002,7 +1068,6 @@ final class Curl
 	/**
 	 * Formats and adds custom headers to the current request
 	 *
-	 * @return void
 	 * @access protected
 	 */
 	protected function set_request_headers()
@@ -1019,10 +1084,9 @@ final class Curl
 
 
 	/**
-	 * Set the associated CURL options for a request method
+	 * Set the associated Curl options for a request method
 	 *
 	 * @param string $method
-	 * @return void
 	 * @access protected
 	 */
 	protected function set_request_method($method)
@@ -1054,8 +1118,6 @@ final class Curl
 	 * Sets the CURLOPT options for the current request
 	 *
 	 * @param string $url
-	 * @param string $vars
-	 * @return void
 	 * @access protected
 	 */
 	protected function set_request_options($url)
@@ -1066,7 +1128,7 @@ final class Curl
 			curl_setopt($this->request, CURLOPT_POSTFIELDS, $this->getVars());
 		}
 
-		# Set some default CURL options
+		// Set some default CURL options
 		curl_setopt($this->request, CURLOPT_HEADER, true);
 		curl_setopt($this->request, CURLOPT_USERAGENT, $this->getUserAgent());
 
@@ -1084,15 +1146,16 @@ final class Curl
 			curl_setopt($this->request, CURLOPT_COOKIEJAR, $this->getCookieFile());
 		}
 
-		if( $this->getFollowRedirects() AND strtolower(ini_get('safe_mode')) !== 'on' ){
-			curl_setopt($this->request, CURLOPT_FOLLOWLOCATION, true);
-		}
+		// fix:Sairon http://forum.nette.org/cs/profile.php?id=1844
+		if( $this->getFollowRedirects() AND strtolower(ini_get('safe_mode')) !== 'on' AND ini_get('open_basedir') == ""){
+                        curl_setopt($this->request, CURLOPT_FOLLOWLOCATION, true);
+                }
 
 		if( $this->getReferer() ){
 			curl_setopt($this->request, CURLOPT_REFERER, $this->getReferer());
 		}
 
-		# Set any custom CURL options
+		// Set any custom CURL options
 		foreach( $this->getOptions() as $option => $value ){
 			curl_setopt($this->request, constant('CURLOPT_'.str_replace('CURLOPT_', '', strtoupper($option))), $value);
 		}
@@ -1106,13 +1169,11 @@ final class Curl
 
 
 /**
- * Exception thrown by cURL wrapper
+ * Exception thrown by Curl wrapper
  *
- * @package curl
+ * @package Curl
  * @author Filip Procházka <hosiplan@kdyby.org>
  */
 
-class CurlException extends Exception { }
-
-
+class CurlException extends \Exception { }
 

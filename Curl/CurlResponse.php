@@ -1,15 +1,17 @@
 <?php
 
+namespace cURL;
+use Nette;
+
 /**
  * Parses the response from a cURL request into an object containing
  * the response body and an associative array of headers
  *
- * @package curl
+ * @package cURL
  * @author Sean Huber <shuber@huberry.com>
  * @author Filip Procházka <hosiplan@kdyby.org>
  */
-
-final class CurlResponse
+class CurlResponse extends Nette\Object
 {
 
 	/**#@+ regexp's for parsing */
